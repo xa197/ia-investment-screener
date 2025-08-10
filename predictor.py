@@ -1,5 +1,6 @@
 # predictor.py
 import pandas as pd
+import yfinance as yf
 from ta.trend import macd, adx
 from ta.momentum import rsi
 from sklearn.model_selection import train_test_split
@@ -45,16 +46,17 @@ def train_model_and_predict(ticker_symbol):
     y = df['target']
     
     # Diviser les données : 80% pour entraîner, 20% pour tester
+    # shuffle=False est TRES important pour les données temporelles
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=False)
     
     if len(X_train) == 0:
         return "Données Insuffisantes"
 
     # Créer et entraîner le modèle (Random Forest)
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
     model.fit(X_train, y_train)
     
-    # Évaluer la précision sur les données de test (pour info)
+    # Évaluer la précision sur les données de test (pour information)
     accuracy = model.score(X_test, y_test)
     print(f"Précision du modèle pour {ticker_symbol}: {accuracy:.2f}")
     
@@ -67,9 +69,9 @@ def train_model_and_predict(ticker_symbol):
         return "ACHÈTE"
     else:
         # Pour distinguer "Vends" et "Garde", on regarde le momentum (RSI)
-        # C'est une heuristique simple
+        # C'est une heuristique simple (une règle de base)
         last_rsi = last_data['rsi'].iloc[0]
-        if last_rsi > 70: # Le marché est suracheté, risque de baisse
+        if last_rsi > 70: # Le marché est considéré comme "suracheté"
             return "VENDS"
         else:
             return "GARDE"
