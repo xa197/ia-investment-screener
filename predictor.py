@@ -1,4 +1,5 @@
 # predictor.py
+
 import pandas as pd
 import yfinance as yf
 from ta.trend import macd, adx
@@ -20,7 +21,7 @@ def get_historical_data(ticker_symbol, period="1y"):
     df['adx'] = adx(df['High'], df['Low'], df['Close'])
     df['rsi'] = rsi(df['Close'])
     
-    # On supprime les lignes avec des données manquantes (générées par les indicateurs)
+    # On supprime les lignes avec des données manquantes (générées au début du calcul des indicateurs)
     df.dropna(inplace=True)
     
     # --- Création de la cible (ce qu'on veut prédire) ---
@@ -37,7 +38,7 @@ def train_model_and_predict(ticker_symbol):
     """Entraîne un modèle pour un ticker et prédit le signal actuel."""
     df = get_historical_data(ticker_symbol)
     
-    if df is None or len(df) < 50: # Pas assez de données pour entraîner
+    if df is None or len(df) < 50: # Il faut assez de données pour entraîner
         return "Données Insuffisantes"
         
     # Définir les features (nos indicateurs) et la cible
@@ -46,7 +47,7 @@ def train_model_and_predict(ticker_symbol):
     y = df['target']
     
     # Diviser les données : 80% pour entraîner, 20% pour tester
-    # shuffle=False est TRES important pour les données temporelles
+    # shuffle=False est TRES important pour les données temporelles pour ne pas tricher
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=False)
     
     if len(X_train) == 0:
@@ -56,7 +57,7 @@ def train_model_and_predict(ticker_symbol):
     model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
     model.fit(X_train, y_train)
     
-    # Évaluer la précision sur les données de test (pour information)
+    # Évaluer la précision sur les données de test (pour information, s'affiche dans le terminal du Codespace)
     accuracy = model.score(X_test, y_test)
     print(f"Précision du modèle pour {ticker_symbol}: {accuracy:.2f}")
     
@@ -68,10 +69,9 @@ def train_model_and_predict(ticker_symbol):
     if prediction[0] == 1:
         return "ACHÈTE"
     else:
-        # Pour distinguer "Vends" et "Garde", on regarde le momentum (RSI)
-        # C'est une heuristique simple (une règle de base)
+        # Pour distinguer "Vends" et "Garde", on utilise une règle simple (heuristique)
         last_rsi = last_data['rsi'].iloc[0]
-        if last_rsi > 70: # Le marché est considéré comme "suracheté"
+        if last_rsi > 70: # Le marché est considéré comme "suracheté", risque de baisse
             return "VENDS"
         else:
             return "GARDE"
