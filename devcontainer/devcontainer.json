@@ -3,7 +3,6 @@
     "image": "mcr.microsoft.com/devcontainers/python:3.11",
     "customizations": {
         "vscode": {
-            "settings": {},
             "extensions": [
                 "ms-python.python"
             ]
